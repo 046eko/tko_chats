@@ -306,7 +306,7 @@
     // Если картинки нет, оставьте avatar: "" — тогда появится буква.
 
     const CHAT = [
-      { side: "right", name: "Борис", avatar: "https://i.pravatar.cc/150?img=11", time: "11:28", initials: "Б", text: "Ребята, нужна помощь! Мне поручили разобраться с ТБО, твердыми бытовыми отходами? С чего начать, куда бежать" },
+      { side: "right", name: "Борис", avatar: "Boris.png", time: "11:28", initials: "Б", text: "Ребята, нужна помощь! Мне поручили разобраться с ТБО, твердыми бытовыми отходами? С чего начать, куда бежать" },
       { side: "left", name: "Елена", avatar: "https://i.pravatar.cc/150?img=5", time: "11:29", initials: "Е", text: "Начать с того, что забыть слово «ТБО», уже много лет у нас есть только твёрдые коммунальные отходы." },
       { side: "right", name: "Борис", avatar: "https://i.pravatar.cc/150?img=11", time: "11:29", initials: "Б", text: "ТКО то бишь?" },
       { side: "left", name: "Елена", avatar: "https://i.pravatar.cc/150?img=5", time: "11:30", initials: "Е", text: "Да, именно." },
