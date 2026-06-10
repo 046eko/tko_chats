@@ -1,0 +1,492 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Чат-симуляция</title>
+  <style>
+    :root{
+      --bg1:#b9f6c6;
+      --bg2:#bfe9ff;
+
+      --ink:#0f172a;
+      --muted:#64748b;
+
+      --card:rgba(255,255,255,.72);
+      --stroke:rgba(15,23,42,.12);
+      --shadow: 0 18px 50px rgba(2,6,23,.18);
+
+      --leftBubble:#ffffff;
+      --rightBubble:#6dae81; 
+      --rightInk:#ffffff;
+
+      --radius:18px;
+      --bubbleRadius:18px;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      color:var(--ink);
+      overflow:hidden;
+      background:
+        radial-gradient(900px 500px at 10% 15%, rgba(255,255,255,.65), transparent 60%),
+        radial-gradient(700px 450px at 90% 20%, rgba(255,255,255,.55), transparent 55%),
+        radial-gradient(900px 600px at 50% 90%, rgba(255,255,255,.45), transparent 60%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+    }
+
+    .blob{
+      position:fixed; inset:auto;
+      filter: blur(30px);
+      opacity:.35;
+      pointer-events:none;
+      mix-blend-mode: soft-light;
+    }
+    .blob.one{
+      width:520px;height:520px; left:-140px; top:-170px;
+      background: radial-gradient(circle at 30% 30%, #34d399, transparent 60%),
+                  radial-gradient(circle at 70% 60%, #22c55e, transparent 55%);
+      border-radius: 48% 52% 60% 40% / 55% 40% 60% 45%;
+      animation: float1 10s ease-in-out infinite;
+    }
+    .blob.two{
+      width:620px;height:620px; right:-220px; top:-180px;
+      background: radial-gradient(circle at 35% 40%, #38bdf8, transparent 62%),
+                  radial-gradient(circle at 70% 70%, #06b6d4, transparent 58%);
+      border-radius: 55% 45% 45% 55% / 52% 60% 40% 48%;
+      animation: float2 12s ease-in-out infinite;
+    }
+    .blob.three{
+      width:520px;height:520px; left:20%; bottom:-260px;
+      background: radial-gradient(circle at 40% 35%, #86efac, transparent 60%),
+                  radial-gradient(circle at 70% 65%, #7dd3fc, transparent 60%);
+      border-radius: 45% 55% 60% 40% / 40% 55% 45% 60%;
+      animation: float3 13s ease-in-out infinite;
+    }
+    @keyframes float1{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(18px,22px) rotate(8deg)}}
+    @keyframes float2{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-20px,28px) rotate(-7deg)}}
+    @keyframes float3{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(8px,-18px) rotate(6deg)}}
+
+    .wrap{
+      height:100%;
+      display:grid;
+      place-items:center;
+      padding:18px;
+    }
+
+    .chatApp{
+      width:min(980px, 100%);
+      height:min(720px, 100%);
+      min-width: 320px;
+      min-height: 400px;
+      background: var(--card);
+      border:1px solid var(--stroke);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(10px);
+      overflow:hidden;
+      display:grid;
+      grid-template-rows: auto 1fr;
+      resize: both; 
+    }
+
+    .topbar{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap: 15px; 
+      padding:14px 16px;
+      border-bottom:1px solid rgba(15,23,42,.10);
+      background: linear-gradient(to bottom, rgba(255,255,255,.80), rgba(255,255,255,.55));
+    }
+    .title{
+      display:flex; gap:10px; align-items:center;
+      min-width:0;
+    }
+    
+    .pill{
+      width:44px;height:44px; 
+      border-radius:12px;
+      background: linear-gradient(135deg, #34d399, #38bdf8);
+      box-shadow: 0 10px 24px rgba(2,6,23,.12);
+      flex:0 0 auto;
+      overflow: hidden; 
+    }
+    .pill img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      cursor: pointer; transition: transform 0.2s;
+    }
+    .pill img:hover { transform: scale(1.05); }
+
+    .title h1{ font-size:15px; margin:0; line-height:1.15; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .title small{ display:block; font-size:12px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+    /* Панель кнопок (История + Запуск) */
+    .actions {
+      display: flex; gap: 8px; flex-shrink: 0;
+    }
+
+    .start-btn {
+      padding: 8px 16px; border: none; border-radius: 10px;
+      background: linear-gradient(135deg, #34d399, #38bdf8); color: #fff;
+      font-weight: 700; font-size: 13px; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(2,6,23,.15); transition: all 0.2s;
+    }
+    .start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(2,6,23,.2); }
+    .start-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7; }
+
+    .hist-btn {
+      padding: 8px 14px; border: 1px solid rgba(15,23,42,.15); border-radius: 10px;
+      background: #fff; color: var(--ink);
+      font-weight: 600; font-size: 13px; cursor: pointer;
+      box-shadow: 0 4px 10px rgba(2,6,23,.05); transition: all 0.2s;
+    }
+    .hist-btn:hover { background: #f8fafc; transform: translateY(-2px); }
+
+    .messages{
+      padding:16px; overflow:auto; scroll-behavior:smooth;
+      display:flex; flex-direction:column; gap:10px;
+    }
+
+    .row{
+      display:flex; align-items:flex-end; gap:10px; max-width: 100%;
+      animation: fadeIn 0.4s ease-out forwards; opacity: 0; transform: translateY(10px);
+    }
+    @keyframes fadeIn { to { opacity: 1; transform: translateY(0); } }
+    .row.left{justify-content:flex-start}
+    .row.right{justify-content:flex-end}
+
+    .avatar{
+      width:36px;height:36px;border-radius:50%;
+      border: 1px solid rgba(15,23,42,.12); background: #fff;
+      flex: 0 0 auto; box-shadow: 0 10px 18px rgba(2,6,23,.10);
+      overflow:hidden; display:grid; place-items:center; user-select:none;
+    }
+    .avatar img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; transition: transform 0.2s; }
+    .avatar img:hover { transform: scale(1.1); }
+    .avatar .initials{ font-weight:800; font-size:14px; color: rgba(15,23,42,.72); }
+
+    .bubble{
+      max-width: min(80%, 640px); border-radius: var(--bubbleRadius); padding:10px 12px;
+      border: 1px solid rgba(15,23,42,.12); box-shadow: 0 10px 22px rgba(2,6,23,.08);
+      position:relative; overflow:hidden;
+    }
+    .meta{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; }
+    .name{ font-size:12px; font-weight:800; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .time{ font-size:11px; color: var(--muted); white-space:nowrap; flex: 0 0 auto; }
+    .text{ font-size:14px; line-height:1.4; white-space:pre-wrap; word-wrap:break-word; }
+    
+    .text a { color: #0284c7; text-decoration: none; border-bottom: 1px solid #0284c7; transition: opacity 0.2s; }
+    .text a:hover { opacity: 0.7; }
+    .right .text a { color: #ffffff; border-bottom: 1px solid #ffffff; }
+
+    .left .bubble{ background: var(--leftBubble); color: var(--ink); }
+    .right .bubble{ background: var(--rightBubble); color: var(--rightInk); border-color: rgba(255,255,255,.20); }
+    .right .time{ color: rgba(255,255,255,.8); }
+    .right .name{ opacity:.95; }
+
+    .left .bubble:before{ content:""; position:absolute; left:-6px; bottom:12px; width:14px; height:14px; background: var(--leftBubble); border-left:1px solid rgba(15,23,42,.12); border-bottom:1px solid rgba(15,23,42,.12); transform: rotate(45deg); }
+    .right .bubble:before{ content:""; position:absolute; right:-6px; bottom:12px; width:14px; height:14px; background: var(--rightBubble); border-right:1px solid rgba(255,255,255,.20); border-bottom:1px solid rgba(255,255,255,.20); transform: rotate(45deg); }
+
+    /* --- МОДАЛЬНОЕ ОКНО ДЛЯ КАРТИНОК --- */
+    .modal {
+      display: none; position: fixed; z-index: 2000; left: 0; top: 0;
+      width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px); justify-content: center; align-items: center;
+    }
+    .modal.active { display: flex; animation: fadeInModal 0.2s ease-out forwards; }
+    .modal-content { max-width: 90%; max-height: 90%; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); object-fit: contain; }
+    .close-btn { position: absolute; top: 20px; right: 30px; color: white; font-size: 40px; font-weight: bold; cursor: pointer; user-select: none; }
+    .close-btn:hover { color: #ccc; }
+
+    @keyframes fadeInModal { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+
+    /* --- МОДАЛЬНОЕ ОКНО ИСТОРИИ (ЧБ СТИЛЬ) --- */
+    .history-modal {
+      display: none; position: fixed; z-index: 1500; left: 0; top: 0;
+      width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(5px); justify-content: center; align-items: center;
+    }
+    .history-modal.active { display: flex; animation: fadeInModal 0.2s ease-out forwards; }
+    
+    .history-box {
+      background: #fff; width: min(800px, 95%); height: min(650px, 90%);
+      border-radius: 18px; display: flex; flex-direction: column; overflow: hidden;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.25);
+    }
+    
+    .history-header {
+      padding: 16px 20px; border-bottom: 1px solid #e2e8f0;
+      display: flex; justify-content: space-between; align-items: center;
+      background: #f8fafc;
+    }
+    .history-header h2 { margin: 0; font-size: 18px; color: #0f172a; }
+    .history-close { font-size: 28px; cursor: pointer; color: #64748b; line-height: 1; user-select: none; }
+    .history-close:hover { color: #0f172a; }
+
+    .history-body {
+      padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+    }
+
+    .hist-row { display: flex; max-width: 100%; }
+    .hist-row.left { justify-content: flex-start; }
+    .hist-row.right { justify-content: flex-end; }
+
+    .hist-bubble {
+      max-width: 80%; padding: 10px 14px; border-radius: 14px;
+      border: 1px solid #cbd5e1; font-size: 14px; line-height: 1.4; color: #0f172a;
+    }
+    /* Фразы других участников (белый фон) */
+    .hist-row.left .hist-bubble { background: #ffffff; border-bottom-left-radius: 4px; }
+    /* Фразы Бориса (светло-серый фон) */
+    .hist-row.right .hist-bubble { background: #e2e8f0; border-color: #cbd5e1; border-bottom-right-radius: 4px; }
+
+    .hist-meta { display: flex; justify-content: space-between; gap: 15px; margin-bottom: 4px; font-size: 11px; }
+    .hist-name { font-weight: bold; color: #334155; }
+    .hist-time { color: #94a3b8; }
+    .hist-text a { color: #475569; text-decoration: underline; }
+
+  </style>
+</head>
+<body>
+  <div class="blob one"></div>
+  <div class="blob two"></div>
+  <div class="blob three"></div>
+
+  <div class="wrap">
+    <div class="chatApp" aria-label="Чат">
+      
+      <div class="topbar">
+        <div class="title">
+          <div class="pill" aria-hidden="true">
+            <img src="Obschiy_chat.png" alt="Иконка группы" id="chatAvatarBtn">
+          </div>
+          <div style="min-width:0">
+            <h1>ТЫЖЭКОЛОГ!1!</h1>
+            <small>Поступил опрометчиво, но поступил на биофак</small>
+          </div>
+        </div>
+        
+        <!-- Кнопки "История" и "Запустить чат" -->
+        <div class="actions">
+          <button id="historyBtn" class="hist-btn">История</button>
+          <button id="startChatBtn" class="start-btn">Запустить чат</button>
+        </div>
+      </div>
+
+      <div class="messages" id="messages">
+        <!-- Сообщения появятся тут -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Модальное окно для полноэкранного просмотра картинок -->
+  <div id="imageModal" class="modal">
+    <span class="close-btn" id="closeImageBtn">&times;</span>
+    <img class="modal-content" id="modalImg">
+  </div>
+
+  <!-- Модальное окно для ИСТОРИИ -->
+  <div id="historyModal" class="history-modal">
+    <div class="history-box">
+      <div class="history-header">
+        <h2>Предыдущие сообщения</h2>
+        <span class="history-close" id="closeHistoryBtn">&times;</span>
+      </div>
+      <div class="history-body" id="historyMessages">
+        <!-- Старые сообщения отрендерятся здесь -->
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // === ИСТОРИЯ (старые сообщения, отображаются в ч/б окне) ===
+    const HISTORY_CHAT = [
+      { side: "right", name: "Борис", time: "11:28", text: "Ребята, нужна помощь! Мне поручили разобраться с ТБО, твердыми бытовыми отходами? С чего начать, куда бежать" },
+      { side: "left", name: "Елена", time: "11:29", text: "Начать с того, что забыть слово «ТБО», уже много лет у нас есть только твёрдые коммунальные отходы." },
+      { side: "right", name: "Борис", avatar: "Boris.png", time: "11:29", text: "ТКО то бишь?" },
+      { side: "left", name: "Елена", time: "11:30", text: "Да, именно." },
+      { side: "left", name: "Елена", time: "11:32", text: "Потом идёшь знакомиться с главным законом по отходам, 89-ФЗ. Например, тут посмотри: <a href='https://1ecolog.ru/#/document/99/901711591/' target='_blank'>https://1ecolog.ru/#/document/99/901711591/</a> Статья 1, там есть все определения. А потом – глава V.1." },
+      { side: "right", name: "Борис", time: "11:36", text: "Ничего себе там материала!" },
+      { side: "left", name: "Марина", time: "11:36", text: "Только читай сам, а не загоняй в ИИ-шку" },
+      { side: "right", name: "Борис", time: "11:37", text: "Не погдлядывай…" },
+      { side: "left", name: "Марина", time: "11:38", text: "Серьёзно, лучше прочти сам. Или могу тебе конспект скинуть, у меня был факультатив по сфере ЖКХ." },
+      { side: "left", name: "Кирилл", time: "11:39", text: "И как ты только умудряешься такие штуки находить?" },
+      { side: "left", name: "Марина", time: "11:39", text: "📄 «Что входит в ТКО».docx" },
+      { side: "right", name: "Борис", avatar: "Boris.png", time: "11:42", initials: "Б", text: "Уже скачал, изучаю" }
+    ];
+
+    // === НОВЫЙ ЧАТ (выводится в основном красивом окне) ===
+    const CHAT = [
+      { side: "right", name: "Борис", avatar: "Boris.png", time: "16:19", initials: "Б", text: "Инвентаризация отходов – это целый квест." },
+      { side: "left", name: "Кирилл", avatar: "Kirill.png", time: "16:21", initials: "К", text: "С которым поможет справиться аккредитованная лаборатория." },
+      { side: "right", name: "Борис", avatar: "Boris.png", time: "16:22", initials: "Б", text: "Прям под ключ?" },
+      { side: "left", name: "Кирилл", avatar: "Kirill.png", time: "16:22", initials: "К", text: "Так тоже можно." },
+      { side: "left", name: "Кирилл", avatar: "Kirill.png", time: "16:25", initials: "К", text: "Наши клиенты по-разному составляют ТЗ. Кому-то нужны только лабораторные протоколы для паспортов, кому-то – полный набор услуг. Зависит от желания и бюджета." },
+      { side: "left", name: "Егор", avatar: "egor.jpg", time: "16:27", initials: "Е", text: "Хорошие у вас клиенты! Мы только отходы в лабораторию сдаем, чтобы компонентный состав узнать. Остальное сами. Ножками, ручками, глазками…" },
+      { side: "left", name: "Кирилл", avatar: "Kirill.png", time: "16:30", initials: "К", text: "У нас были заказчики, которые хотели просто протоколы. Без проб и исследований. И скидку на это дело просили, «у вас же затрат минимум». Поржали, отказали." },
+      { side: "right", name: "Борис", avatar: "Boris.png", time: "16:32", initials: "Б", text: "Почему?" },
+      { side: "left", name: "Кирилл", avatar: "Kirill.png", time: "16:33", initials: "К", text: "Шутишь? Нам наша аккредитация дорога. В лабу столько денег вложено, потерять возможность работать не хотелось бы." },
+      { side: "right", name: "Борис", avatar: "Boris.png", time: "16:35", initials: "Б", text: "Серьезно, да." },
+      { side: "right", name: "Борис", avatar: "Boris.png", time: "16:36", initials: "Б", text: "Спасибо за помощь ребят! Я еще вернусь =)" }
+    ];
+
+    const messagesEl = document.getElementById('messages');
+    const startBtn = document.getElementById('startChatBtn');
+
+    // === ЛОГИКА ДЛЯ КАРТИНОК ===
+    const imageModal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImg');
+    const closeImageBtn = document.getElementById('closeImageBtn');
+    const chatAvatarBtn = document.getElementById('chatAvatarBtn');
+
+    function openImage(src) {
+      modalImg.src = src;
+      imageModal.classList.add('active');
+    }
+    imageModal.addEventListener('click', function(e) {
+      if (e.target !== modalImg) {
+        imageModal.classList.remove('active');
+        setTimeout(() => modalImg.src = '', 200); 
+      }
+    });
+    if(chatAvatarBtn) {
+      chatAvatarBtn.addEventListener('click', () => openImage(chatAvatarBtn.src));
+    }
+
+    // === ЛОГИКА ДЛЯ ОКНА ИСТОРИИ ===
+    const historyModal = document.getElementById('historyModal');
+    const histBtn = document.getElementById('historyBtn');
+    const closeHistoryBtn = document.getElementById('closeHistoryBtn');
+    const historyMessages = document.getElementById('historyMessages');
+
+    function renderHistory() {
+      historyMessages.innerHTML = '';
+      HISTORY_CHAT.forEach(m => {
+        const row = document.createElement('div');
+        row.className = `hist-row ${m.side}`; // left или right
+        
+        const bubble = document.createElement('div');
+        bubble.className = 'hist-bubble';
+        
+        const meta = document.createElement('div');
+        meta.className = 'hist-meta';
+        meta.innerHTML = `<span class="hist-name">${m.name}</span><span class="hist-time">${m.time}</span>`;
+        
+        const text = document.createElement('div');
+        text.className = 'hist-text';
+        text.innerHTML = m.text;
+
+        bubble.appendChild(meta);
+        bubble.appendChild(text);
+        row.appendChild(bubble);
+        historyMessages.appendChild(row);
+      });
+    }
+    
+    // Генерируем историю сразу, чтобы она была готова
+    renderHistory();
+
+    histBtn.addEventListener('click', () => {
+      historyModal.classList.add('active');
+    });
+    historyModal.addEventListener('click', (e) => {
+      // Закрываем окно кликом на крестик или на темный фон вне белого блока
+      if (e.target === historyModal || e.target === closeHistoryBtn) {
+        historyModal.classList.remove('active');
+      }
+    });
+
+    // === ГЕНЕРАЦИЯ ОСНОВНОГО ЧАТА ===
+    function renderMessage(m){
+      const row = document.createElement('div');
+      row.className = `row ${m.side === 'right' ? 'right' : 'left'}`;
+
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar';
+
+      if (m.avatar && m.avatar !== "") {
+        const img = document.createElement('img');
+        img.src = m.avatar;
+        img.alt = m.name;
+        
+        img.addEventListener('click', () => openImage(m.avatar));
+
+        img.onerror = () => {
+          img.style.display = 'none';
+          const ini = document.createElement('div');
+          ini.className = 'initials';
+          ini.textContent = m.initials;
+          avatar.appendChild(ini);
+        };
+        avatar.appendChild(img);
+      } else {
+        const ini = document.createElement('div');
+        ini.className = 'initials';
+        ini.textContent = m.initials;
+        avatar.appendChild(ini);
+      }
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+
+      const nameEl = document.createElement('div');
+      nameEl.className = 'name';
+      nameEl.textContent = m.name;
+
+      const timeEl = document.createElement('div');
+      timeEl.className = 'time';
+      timeEl.textContent = m.time;
+
+      const textEl = document.createElement('div');
+      textEl.className = 'text';
+      textEl.innerHTML = m.text;
+
+      meta.appendChild(nameEl);
+      meta.appendChild(timeEl);
+      bubble.appendChild(meta);
+      bubble.appendChild(textEl);
+
+      if (m.side === 'right'){
+        row.appendChild(bubble);
+        row.appendChild(avatar);
+      } else {
+        row.appendChild(avatar);
+        row.appendChild(bubble);
+      }
+
+      return row;
+    }
+
+    let currentMessageIndex = 0;
+    let chatInterval;
+
+    startBtn.addEventListener('click', () => {
+      startBtn.disabled = true;
+      startBtn.textContent = "Чат активен...";
+
+      const showNextMessage = () => {
+        if (currentMessageIndex < CHAT.length) {
+          const msg = renderMessage(CHAT[currentMessageIndex]);
+          messagesEl.appendChild(msg);
+          messagesEl.scrollTop = messagesEl.scrollHeight;
+          currentMessageIndex++;
+        } else {
+          clearInterval(chatInterval);
+          startBtn.textContent = "Продолжение следует";
+        }
+      };
+
+      showNextMessage();
+      chatInterval = setInterval(showNextMessage, 3000);
+    });
+
+  </script>
+</body>
+</html>
