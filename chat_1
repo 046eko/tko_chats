@@ -89,7 +89,7 @@
       backdrop-filter: blur(10px);
       overflow:hidden;
       display:grid;
-      grid-template-rows: auto 1fr auto; 
+      grid-template-rows: auto 1fr; /* 2 строки: шапка и сами сообщения */
       resize: both; 
     }
 
@@ -97,6 +97,7 @@
       display:flex;
       align-items:center;
       justify-content:space-between;
+      gap: 15px; 
       padding:14px 16px;
       border-bottom:1px solid rgba(15,23,42,.10);
       background: linear-gradient(to bottom, rgba(255,255,255,.80), rgba(255,255,255,.55));
@@ -106,21 +107,23 @@
       min-width:0;
     }
     
-    /* Стили для аватарки чата */
     .pill{
-      width:44px;height:44px; /* Чуть увеличил для картинки */
+      width:44px;height:44px; 
       border-radius:12px;
       background: linear-gradient(135deg, #34d399, #38bdf8);
       box-shadow: 0 10px 24px rgba(2,6,23,.12);
       flex:0 0 auto;
-      overflow: hidden; /* Чтобы картинка не вылезала за скругленные углы */
+      overflow: hidden; 
     }
     .pill img {
       width: 100%;
       height: 100%;
       object-fit: cover;
       display: block;
+      cursor: pointer; /* Указатель при наведении, чтобы было понятно, что можно кликнуть */
+      transition: transform 0.2s;
     }
+    .pill img:hover { transform: scale(1.05); }
 
     .title h1{
       font-size:15px; margin:0; line-height:1.15;
@@ -133,6 +136,18 @@
       margin-top:2px;
       white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
+
+    /* Кнопка запуска чата в верхнем правом углу */
+    .start-btn {
+      flex-shrink: 0; 
+      padding: 8px 16px; 
+      border: none; border-radius: 10px;
+      background: linear-gradient(135deg, #34d399, #38bdf8); color: #fff;
+      font-weight: 700; font-size: 13px; cursor: pointer;
+      box-shadow: 0 4px 14px rgba(2,6,23,.15); transition: all 0.2s;
+    }
+    .start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(2,6,23,.2); }
+    .start-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7; }
 
     .messages{
       padding:16px;
@@ -158,7 +173,6 @@
     .row.left{justify-content:flex-start}
     .row.right{justify-content:flex-end}
 
-    /* Стили для аватарок героев */
     .avatar{
       width:36px;height:36px;border-radius:50%;
       border: 1px solid rgba(15,23,42,.12);
@@ -171,15 +185,13 @@
       user-select:none;
     }
     .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover; /* Обрезает картинку по кругу без искажений пропорций */
-      display: block;
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      cursor: pointer; transition: transform 0.2s;
     }
+    .avatar img:hover { transform: scale(1.1); }
+    
     .avatar .initials{
-      font-weight:800;
-      font-size:14px;
-      color: rgba(15,23,42,.72);
+      font-weight:800; font-size:14px; color: rgba(15,23,42,.72);
     }
 
     .bubble{
@@ -192,45 +204,21 @@
       overflow:hidden;
     }
     .meta{
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom:6px;
+      display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px;
     }
     .name{
-      font-size:12px;
-      font-weight:800;
-      opacity:.9;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
+      font-size:12px; font-weight:800; opacity:.9; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
     }
     .time{
-      font-size:11px;
-      color: var(--muted);
-      white-space:nowrap;
-      flex: 0 0 auto;
+      font-size:11px; color: var(--muted); white-space:nowrap; flex: 0 0 auto;
     }
     .text{
-      font-size:14px;
-      line-height:1.4;
-      white-space:pre-wrap;
-      word-wrap:break-word;
+      font-size:14px; line-height:1.4; white-space:pre-wrap; word-wrap:break-word;
     }
     
-    .text a {
-      color: #0284c7;
-      text-decoration: none;
-      border-bottom: 1px solid #0284c7;
-      transition: opacity 0.2s;
-    }
+    .text a { color: #0284c7; text-decoration: none; border-bottom: 1px solid #0284c7; transition: opacity 0.2s; }
     .text a:hover { opacity: 0.7; }
-    
-    .right .text a {
-      color: #ffffff;
-      border-bottom: 1px solid #ffffff;
-    }
+    .right .text a { color: #ffffff; border-bottom: 1px solid #ffffff; }
 
     .left .bubble{ background: var(--leftBubble); color: var(--ink); }
     .right .bubble{ background: var(--rightBubble); color: var(--rightInk); border-color: rgba(255,255,255,.20); }
@@ -249,21 +237,43 @@
       transform: rotate(45deg);
     }
 
-    .footerNote{
-      padding:12px 16px;
-      border-top:1px solid rgba(15,23,42,.10);
-      background: linear-gradient(to top, rgba(255,255,255,.82), rgba(255,255,255,.55));
-      display: flex; justify-content: center; align-items: center; padding-right: 24px;
+    /* ------------------------------------------- */
+    /* СТИЛИ ДЛЯ УВЕЛИЧЕНИЯ КАРТИНОК (МОДАЛЬНОЕ ОКНО) */
+    /* ------------------------------------------- */
+    .modal {
+      display: none; /* Изначально скрыто */
+      position: fixed;
+      z-index: 1000;
+      left: 0; top: 0;
+      width: 100%; height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(5px);
+      justify-content: center;
+      align-items: center;
     }
+    .modal.active {
+      display: flex; /* Показываем при классе active */
+      animation: fadeInModal 0.2s ease-out forwards;
+    }
+    .modal-content {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      object-fit: contain; /* Чтобы картинка не обрезалась, а вписывалась в экран */
+    }
+    .close-btn {
+      position: absolute;
+      top: 20px; right: 30px;
+      color: white; font-size: 40px; font-weight: bold;
+      cursor: pointer; user-select: none;
+    }
+    .close-btn:hover { color: #ccc; }
 
-    .start-btn {
-      padding: 10px 24px; border: none; border-radius: 12px;
-      background: linear-gradient(135deg, #34d399, #38bdf8); color: #fff;
-      font-weight: 700; font-size: 14px; cursor: pointer;
-      box-shadow: 0 4px 14px rgba(2,6,23,.15); transition: all 0.2s;
+    @keyframes fadeInModal {
+      from { opacity: 0; transform: scale(0.95); }
+      to { opacity: 1; transform: scale(1); }
     }
-    .start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(2,6,23,.2); }
-    .start-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7; }
   </style>
 </head>
 <body>
@@ -273,343 +283,84 @@
 
   <div class="wrap">
     <div class="chatApp" aria-label="Чат">
+      
+      <!-- Кнопка теперь здесь, в шапке (.topbar) -->
       <div class="topbar">
         <div class="title">
           <div class="pill" aria-hidden="true">
-            <!-- ============================================== -->
-            <!-- АВАТАРКА САМОГО ЧАТА (Квадрат слева сверху)    -->
-            <!-- ============================================== -->
-            <img src="Obschiy_chat.png" alt="Иконка группы">
+            <!-- Аватарка чата (при клике на нее тоже откроется оригинал) -->
+            <img src="Obschiy_chat.png" alt="Иконка группы" id="chatAvatarBtn">
           </div>
           <div style="min-width:0">
             <h1>ТЫЖЭКОЛОГ!1!</h1>
             <small>Поступил опрометчиво, но поступил на биофак</small>
           </div>
         </div>
-<!doctype html>
-<html lang="ru">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Чат-симуляция</title>
-  <style>
-    :root{
-      --bg1:#b9f6c6;
-      --bg2:#bfe9ff;
-
-      --ink:#0f172a;
-      --muted:#64748b;
-
-      --card:rgba(255,255,255,.72);
-      --stroke:rgba(15,23,42,.12);
-      --shadow: 0 18px 50px rgba(2,6,23,.18);
-
-      --leftBubble:#ffffff;
-      --rightBubble:#6dae81; 
-      --rightInk:#ffffff;
-
-      --radius:18px;
-      --bubbleRadius:18px;
-    }
-
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      color:var(--ink);
-      overflow:hidden;
-      background:
-        radial-gradient(900px 500px at 10% 15%, rgba(255,255,255,.65), transparent 60%),
-        radial-gradient(700px 450px at 90% 20%, rgba(255,255,255,.55), transparent 55%),
-        radial-gradient(900px 600px at 50% 90%, rgba(255,255,255,.45), transparent 60%),
-        linear-gradient(135deg, var(--bg1), var(--bg2));
-    }
-
-    .blob{
-      position:fixed; inset:auto;
-      filter: blur(30px);
-      opacity:.35;
-      pointer-events:none;
-      mix-blend-mode: soft-light;
-    }
-    .blob.one{
-      width:520px;height:520px; left:-140px; top:-170px;
-      background: radial-gradient(circle at 30% 30%, #34d399, transparent 60%),
-                  radial-gradient(circle at 70% 60%, #22c55e, transparent 55%);
-      border-radius: 48% 52% 60% 40% / 55% 40% 60% 45%;
-      animation: float1 10s ease-in-out infinite;
-    }
-    .blob.two{
-      width:620px;height:620px; right:-220px; top:-180px;
-      background: radial-gradient(circle at 35% 40%, #38bdf8, transparent 62%),
-                  radial-gradient(circle at 70% 70%, #06b6d4, transparent 58%);
-      border-radius: 55% 45% 45% 55% / 52% 60% 40% 48%;
-      animation: float2 12s ease-in-out infinite;
-    }
-    .blob.three{
-      width:520px;height:520px; left:20%; bottom:-260px;
-      background: radial-gradient(circle at 40% 35%, #86efac, transparent 60%),
-                  radial-gradient(circle at 70% 65%, #7dd3fc, transparent 60%);
-      border-radius: 45% 55% 60% 40% / 40% 55% 45% 60%;
-      animation: float3 13s ease-in-out infinite;
-    }
-    @keyframes float1{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(18px,22px) rotate(8deg)}}
-    @keyframes float2{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(-20px,28px) rotate(-7deg)}}
-    @keyframes float3{0%,100%{transform:translate(0,0) rotate(0deg)}50%{transform:translate(8px,-18px) rotate(6deg)}}
-
-    .wrap{
-      height:100%;
-      display:grid;
-      place-items:center;
-      padding:18px;
-    }
-
-    .chatApp{
-      width:min(980px, 100%);
-      height:min(720px, 100%);
-      min-width: 320px;
-      min-height: 400px;
-      background: var(--card);
-      border:1px solid var(--stroke);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(10px);
-      overflow:hidden;
-      display:grid;
-      grid-template-rows: auto 1fr auto; 
-      resize: both; 
-    }
-
-    .topbar{
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      padding:14px 16px;
-      border-bottom:1px solid rgba(15,23,42,.10);
-      background: linear-gradient(to bottom, rgba(255,255,255,.80), rgba(255,255,255,.55));
-    }
-    .title{
-      display:flex; gap:10px; align-items:center;
-      min-width:0;
-    }
-    
-    /* Стили для аватарки чата */
-    .pill{
-      width:44px;height:44px; /* Чуть увеличил для картинки */
-      border-radius:12px;
-      background: linear-gradient(135deg, #34d399, #38bdf8);
-      box-shadow: 0 10px 24px rgba(2,6,23,.12);
-      flex:0 0 auto;
-      overflow: hidden; /* Чтобы картинка не вылезала за скругленные углы */
-    }
-    .pill img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-    }
-
-    .title h1{
-      font-size:15px; margin:0; line-height:1.15;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-    .title small{
-      display:block;
-      font-size:12px;
-      color:var(--muted);
-      margin-top:2px;
-      white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    }
-
-    .messages{
-      padding:16px;
-      overflow:auto;
-      scroll-behavior:smooth;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-
-    .row{
-      display:flex;
-      align-items:flex-end;
-      gap:10px;
-      max-width: 100%;
-      animation: fadeIn 0.4s ease-out forwards;
-      opacity: 0;
-      transform: translateY(10px);
-    }
-    @keyframes fadeIn {
-      to { opacity: 1; transform: translateY(0); }
-    }
-    .row.left{justify-content:flex-start}
-    .row.right{justify-content:flex-end}
-
-    /* Стили для аватарок героев */
-    .avatar{
-      width:36px;height:36px;border-radius:50%;
-      border: 1px solid rgba(15,23,42,.12);
-      background: #fff;
-      flex: 0 0 auto;
-      box-shadow: 0 10px 18px rgba(2,6,23,.10);
-      overflow:hidden;
-      display:grid;
-      place-items:center;
-      user-select:none;
-    }
-    .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover; /* Обрезает картинку по кругу без искажений пропорций */
-      display: block;
-    }
-    .avatar .initials{
-      font-weight:800;
-      font-size:14px;
-      color: rgba(15,23,42,.72);
-    }
-
-    .bubble{
-      max-width: min(80%, 640px);
-      border-radius: var(--bubbleRadius);
-      padding:10px 12px;
-      border: 1px solid rgba(15,23,42,.12);
-      box-shadow: 0 10px 22px rgba(2,6,23,.08);
-      position:relative;
-      overflow:hidden;
-    }
-    .meta{
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap:10px;
-      margin-bottom:6px;
-    }
-    .name{
-      font-size:12px;
-      font-weight:800;
-      opacity:.9;
-      white-space:nowrap;
-      overflow:hidden;
-      text-overflow:ellipsis;
-    }
-    .time{
-      font-size:11px;
-      color: var(--muted);
-      white-space:nowrap;
-      flex: 0 0 auto;
-    }
-    .text{
-      font-size:14px;
-      line-height:1.4;
-      white-space:pre-wrap;
-      word-wrap:break-word;
-    }
-    
-    .text a {
-      color: #0284c7;
-      text-decoration: none;
-      border-bottom: 1px solid #0284c7;
-      transition: opacity 0.2s;
-    }
-    .text a:hover { opacity: 0.7; }
-    
-    .right .text a {
-      color: #ffffff;
-      border-bottom: 1px solid #ffffff;
-    }
-
-    .left .bubble{ background: var(--leftBubble); color: var(--ink); }
-    .right .bubble{ background: var(--rightBubble); color: var(--rightInk); border-color: rgba(255,255,255,.20); }
-    .right .time{ color: rgba(255,255,255,.8); }
-    .right .name{ opacity:.95; }
-
-    .left .bubble:before{
-      content:""; position:absolute; left:-6px; bottom:12px; width:14px; height:14px;
-      background: var(--leftBubble); border-left:1px solid rgba(15,23,42,.12); border-bottom:1px solid rgba(15,23,42,.12);
-      transform: rotate(45deg);
-    }
-    
-    .right .bubble:before{
-      content:""; position:absolute; right:-6px; bottom:12px; width:14px; height:14px;
-      background: var(--rightBubble); border-right:1px solid rgba(255,255,255,.20); border-bottom:1px solid rgba(255,255,255,.20);
-      transform: rotate(45deg);
-    }
-
-    .footerNote{
-      padding:12px 16px;
-      border-top:1px solid rgba(15,23,42,.10);
-      background: linear-gradient(to top, rgba(255,255,255,.82), rgba(255,255,255,.55));
-      display: flex; justify-content: center; align-items: center; padding-right: 24px;
-    }
-
-    .start-btn {
-      padding: 10px 24px; border: none; border-radius: 12px;
-      background: linear-gradient(135deg, #34d399, #38bdf8); color: #fff;
-      font-weight: 700; font-size: 14px; cursor: pointer;
-      box-shadow: 0 4px 14px rgba(2,6,23,.15); transition: all 0.2s;
-    }
-    .start-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(2,6,23,.2); }
-    .start-btn:disabled { background: var(--muted); cursor: not-allowed; transform: none; box-shadow: none; opacity: 0.7; }
-  </style>
-</head>
-<body>
-  <div class="blob one"></div>
-  <div class="blob two"></div>
-  <div class="blob three"></div>
-
-  <div class="wrap">
-    <div class="chatApp" aria-label="Чат">
-      <div class="topbar">
-        <div class="title">
-          <div class="pill" aria-hidden="true">
-            <!-- ============================================== -->
-            <!-- АВАТАРКА САМОГО ЧАТА (Квадрат слева сверху)    -->
-            <!-- ============================================== -->
-            <img src="Obschiy_chat.png" alt="Иконка группы">
-          </div>
-          <div style="min-width:0">
-            <h1>ТЫЖЭКОЛОГ!1!</h1>
-            <small>Поступил опрометчиво, но поступил на биофак</small>
-          </div>
-        </div>
+        
+        <button id="startChatBtn" class="start-btn">Запустить чат</button>
       </div>
 
       <div class="messages" id="messages">
         <!-- Сообщения появятся тут -->
       </div>
-
-      <div class="footerNote">
-        <button id="startChatBtn" class="start-btn">Запустить чат</button>
-      </div>
+      
     </div>
   </div>
 
-  <script>
-    // ==============================================
-    // ФРАЗЫ ГЕРОЕВ И ИХ АВАТАРКИ
-    // ==============================================
-    // Свойство avatar содержит ссылку на картинку. Замените на свои!
-    // Если картинки нет, оставьте avatar: "" — тогда появится буква.
+  <!-- Модальное окно для полноэкранного просмотра картинок -->
+  <div id="imageModal" class="modal">
+    <span class="close-btn">&times;</span>
+    <img class="modal-content" id="modalImg">
+  </div>
 
+  <script>
+    // Массив сообщений. Замените boris.jpg, elena.jpg и т.д. на свои реальные файлы!
     const CHAT = [
       { side: "right", name: "Борис", avatar: "Boris.png", time: "11:28", initials: "Б", text: "Ребята, нужна помощь! Мне поручили разобраться с ТБО, твердыми бытовыми отходами? С чего начать, куда бежать" },
       { side: "left", name: "Елена", avatar: "Elena.png", time: "11:29", initials: "Е", text: "Начать с того, что забыть слово «ТБО», уже много лет у нас есть только твёрдые коммунальные отходы." },
       { side: "right", name: "Борис", avatar: "Boris.png", time: "11:29", initials: "Б", text: "ТКО то бишь?" },
       { side: "left", name: "Елена", avatar: "Elena.png", time: "11:30", initials: "Е", text: "Да, именно." },
-      { side: "left", name: "Елена", avatar: "Elena.png", time: "11:32", initials: "Е", text: "Потом идёшь знакомиться с главным законом по отходам, 89-ФЗ. Например, <a href='https://1ecolog.ru/#/document/99/901711591/' target='_blank'>тут посмотри</a>. Статья 1, там есть все определения. А потом – глава V.1." },
+      { side: "left", name: "Елена", avatar: "Elena.png", time: "11:32", initials: "Е", text: "Потом идёшь знакомиться с главным законом по отходам, 89-ФЗ. Например, <a href='https://1ecolog.ru/#/document/99/901711591/' target='_blank'>тут посмотри</a> Статья 1, там есть все определения. А потом – глава V.1." },
       { side: "right", name: "Борис", avatar: "Boris.png", time: "11:36", initials: "Б", text: "Ничего себе там материала!" },
       { side: "left", name: "Марина", avatar: "Marina.png", time: "11:36", initials: "М", text: "Только читай сам, а не загоняй в ИИ-шку" },
       { side: "right", name: "Борис", avatar: "Boris.png", time: "11:37", initials: "Б", text: "Не погдлядывай…" },
       { side: "left", name: "Марина", avatar: "Marina.png", time: "11:38", initials: "М", text: "Серьёзно, лучше прочти сам. Или могу тебе конспект скинуть, у меня был факультатив по сфере ЖКХ." },
       { side: "left", name: "Кирилл", avatar: "Kirill.png", time: "11:39", initials: "К", text: "И как ты только умудряешься такие штуки находить?" },
-      { side: "left", name: "Марина", avatar: "Marina.png", time: "11:39", initials: "М", text: "📄 «Что входит в ТКО».docx" }
+      { side: "left", name: "Марина", avatar: "Marina.png", time: "11:39", initials: "М", text: "📄 «Что входит в ТКО».docx" },
+      { side: "right", name: "Борис", avatar: "Boris.png", time: "11:42", initials: "Б", text: "Уже скачал, изучаю" },
     ];
 
     const messagesEl = document.getElementById('messages');
     const startBtn = document.getElementById('startChatBtn');
 
+    // Настройка модального окна для картинок
+    const modal = document.getElementById('imageModal');
+    const modalImg = document.getElementById('modalImg');
+    const chatAvatarBtn = document.getElementById('chatAvatarBtn');
+
+    // Функция открытия картинки
+    function openImage(src) {
+      modalImg.src = src;
+      modal.classList.add('active');
+    }
+
+    // Закрытие по клику куда угодно (кроме самой картинки)
+    modal.addEventListener('click', function(e) {
+      if (e.target !== modalImg) {
+        modal.classList.remove('active');
+        // Очищаем источник после закрытия, чтобы не было видно старой картинки при след. открытии
+        setTimeout(() => modalImg.src = '', 200); 
+      }
+    });
+
+    // Привязываем клик к главной аватарке чата
+    if(chatAvatarBtn) {
+      chatAvatarBtn.addEventListener('click', () => {
+        openImage(chatAvatarBtn.src);
+      });
+    }
+
+    // Генерация сообщений
     function renderMessage(m){
       const row = document.createElement('div');
       row.className = `row ${m.side === 'right' ? 'right' : 'left'}`;
@@ -617,11 +368,24 @@
       const avatar = document.createElement('div');
       avatar.className = 'avatar';
 
-      // Проверяем, есть ли картинка. Если есть — ставим её, если нет — букву.
       if (m.avatar && m.avatar !== "") {
         const img = document.createElement('img');
         img.src = m.avatar;
         img.alt = m.name;
+        
+        // Вешаем клик на аватарку героя
+        img.addEventListener('click', () => {
+          openImage(m.avatar);
+        });
+
+        // Если картинка вдруг удалена или путь неверный - показываем букву
+        img.onerror = () => {
+          img.style.display = 'none';
+          const ini = document.createElement('div');
+          ini.className = 'initials';
+          ini.textContent = m.initials;
+          avatar.appendChild(ini);
+        };
         avatar.appendChild(img);
       } else {
         const ini = document.createElement('div');
@@ -683,107 +447,6 @@
         }
       };
 
-      showNextMessage();
-      chatInterval = setInterval(showNextMessage, 3000);
-    });
-
-  </script>
-</body>
-</html>
-      </div>
-
-      <div class="messages" id="messages">
-        <!-- Сообщения появятся тут -->
-      </div>
-
-      <div class="footerNote">
-        <button id="startChatBtn" class="start-btn">Запустить чат</button>
-      </div>
-    </div>
-  </div>
-
-  <script>
-    // ==============================================
-    // ФРАЗЫ ГЕРОЕВ И ИХ АВАТАРКИ
-    // ==============================================
-    // Свойство avatar содержит ссылку на картинку. Замените на свои!
-    // Если картинки нет, оставьте avatar: "" — тогда появится буква.
-
-    const CHAT = [
-      { side: "right", name: "Борис", avatar: "Boris.png", time: "11:28", initials: "Б", text: "Ребята, нужна помощь! Мне поручили разобраться с ТБО, твердыми бытовыми отходами? С чего начать, куда бежать" },
-      { side: "left", name: "Елена", avatar: "Elena.png", time: "11:29", initials: "Е", text: "Начать с того, что забыть слово «ТБО», уже много лет у нас есть только твёрдые коммунальные отходы." },
-      { side: "right", name: "Борис", avatar: "Boris.png", time: "11:29", initials: "Б", text: "ТКО то бишь?" },
-      { side: "left", name: "Елена", avatar: "Elena.png", time: "11:30", initials: "Е", text: "Да, именно." },
-      { side: "left", name: "Елена", avatar: "Elena.png", time: "11:32", initials: "Е", text: "Потом идёшь знакомиться с главным законом по отходам, 89-ФЗ. Например, <a href='https://1ecolog.ru/#/document/99/901711591/' target='_blank'>тут посмотри</a>. Статья 1, там есть все определения. А потом – глава V.1." },
-      { side: "right", name: "Борис", avatar: "Boris.png", time: "11:36", initials: "Б", text: "Ничего себе там материала!" },
-      { side: "left", name: "Марина", avatar: "Marina.png", time: "11:36", initials: "М", text: "Только читай сам, а не загоняй в ИИ-шку" },
-      { side: "right", name: "Борис", avatar: "Boris.png", time: "11:37", initials: "Б", text: "Не погдлядывай…" },
-      { side: "left", name: "Марина", avatar: "Marina.png", time: "11:38", initials: "М", text: "Серьёзно, лучше прочти сам. Или могу тебе конспект скинуть, у меня был факультатив по сфере ЖКХ." },
-      { side: "left", name: "Кирилл", avatar: "Kirill.png", time: "11:39", initials: "К", text: "И как ты только умудряешься такие штуки находить?" },
-      { side: "left", name: "Марина", avatar: "Marina.png", time: "11:39", initials: "М", text: "📄 «Что входит в ТКО».docx" }
-    ];
-
-    const messagesEl = document.getElementById('messages');
-    const startBtn = document.getElementById('startChatBtn');
-
-    function renderMessage(m){
-      const row = document.createElement('div');
-      row.className = `row ${m.side === 'right' ? 'right' : 'left'}`;
-
-      const avatar = document.createElement('div');
-      avatar.className = 'avatar';
-
-      // Проверяем, есть ли картинка. Если есть — ставим её, если нет — букву.
-      if (m.avatar && m.avatar !== "") {
-        const img = document.createElement('img');
-        img.src = m.avatar;
-        img.alt = m.name;
-        avatar.appendChild(img);
-      } else {
-        const ini = document.createElement('div');
-        ini.className = 'initials';
-        ini.textContent = m.initials;
-        avatar.appendChild(ini);
-      }
-
-      const bubble = document.createElement('div');
-      bubble.className = 'bubble';
-
-      const meta = document.createElement('div');
-      meta.className = 'meta';
-
-      const nameEl = document.createElement('div');
-      nameEl.className = 'name';
-      nameEl.textContent = m.name;
-
-      const timeEl = document.createElement('div');
-      timeEl.className = 'time';
-      timeEl.textContent = m.time;
-
-      const textEl = document.createElement('div');
-      textEl.className = 'text';
-      textEl.innerHTML = m.text;
-
-      meta.appendChild(nameEl);
-      meta.appendChild(timeEl);
-      bubble.appendChild(meta);
-      bubble.appendChild(textEl);
-
-      if (m.side === 'right'){
-        row.appendChild(bubble);
-        row.appendChild(avatar);
-      } else {
-        row.appendChild(avatar);
-        row.appendChild(bubble);
-      }
-
-      return row;
-    }
-
-    let currentMessageIndex = 0;
-    let chatInterval;
-
-   
       showNextMessage();
       chatInterval = setInterval(showNextMessage, 3000);
     });
